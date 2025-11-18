@@ -213,6 +213,50 @@ def install_editable_package(
     return result.returncode == 0
 
 
+def fix_numpy_binary_compatibility(verbose: bool = True) -> bool:
+    """Fix numpy binary compatibility issues in Google Colab.
+
+    This addresses the common "numpy.dtype size changed" error that occurs
+    when packages compiled against different numpy versions are loaded together.
+    We force-upgrade numpy after all other packages are installed to ensure
+    binary compatibility.
+
+    Args:
+        verbose: Whether to print progress messages
+
+    Returns:
+        True if upgrade succeeded, False otherwise
+    """
+    if verbose:
+        print("\n🔧 Ensuring numpy binary compatibility...")
+
+    cmd = [
+        sys.executable,
+        "-m",
+        "pip",
+        "install",
+        "--upgrade",
+        "--force-reinstall",
+        "--no-cache-dir",
+        "numpy",
+    ]
+
+    if verbose:
+        print("   Running: pip install --upgrade --force-reinstall numpy")
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    if result.returncode == 0:
+        if verbose:
+            print("✅ Numpy binary compatibility ensured")
+        return True
+    else:
+        if verbose:
+            print("⚠️  Warning: Could not upgrade numpy")
+            print(f"   Error: {result.stderr[:200]}")
+        return False
+
+
 def smart_install_dependencies(
     repo_path: Path,
     include_dev: bool = False,
@@ -229,7 +273,8 @@ def smart_install_dependencies(
         repo_path: Path to repository root
         include_dev: Whether to install dev dependencies
         verbose: Whether to print progress messages
-        install_editable: Whether to install the package in editable mode (default: False)
+        install_editable: Whether to install the package in editable mode
+            (default: False)
 
     Returns:
         Dictionary with keys:
@@ -311,6 +356,16 @@ def smart_install_dependencies(
 
         if not editable_success:
             failed.append("digital-health-tutorial (editable)")
+
+    # Fix numpy binary compatibility issues (common in Google Colab)
+    # This prevents "numpy.dtype size changed" errors when importing packages
+    # that have C extensions compiled against different numpy versions
+    numpy_fix_success = fix_numpy_binary_compatibility(verbose=verbose)
+    if not numpy_fix_success and verbose:
+        print(
+            "\n⚠️  Warning: Could not fix numpy compatibility. "
+            "You may encounter import errors."
+        )
 
     # Report results
     if verbose:
