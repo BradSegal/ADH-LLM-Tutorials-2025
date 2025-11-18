@@ -1,0 +1,25 @@
+# Configuration for GRU Baseline Model Experiment
+# This file defines hyperparameters for training the GRU model on the
+# PhysioNet 2019 Sepsis dataset.
+
+# Model architecture configuration
+model:
+  input_size: 34  # Number of physiological features in the dataset
+  hidden_size: 64  # Size of the GRU hidden state
+  num_layers: 2  # Number of stacked GRU layers
+  dropout: 0.2  # Dropout probability between GRU layers
+
+# Training configuration
+training:
+  learning_rate: 0.001  # Initial learning rate
+  epochs: 20  # Number of training epochs
+  batch_size: 32  # Batch size for training and validation
+  device: "cuda"  # Device to use ('cuda' or 'cpu')
+  optimizer: "adam"  # Optimizer choice ('adam' or 'sgd')
+  optimizer_momentum: 0.0  # Momentum for SGD (ignored for Adam)
+  loss: "bce_logits"  # Loss function ('bce_logits' for binary classification)
+  scheduler: "none"  # Learning rate scheduler ('none' or 'step')
+  max_grad_norm: 1.0  # Maximum gradient norm for clipping (helps with stability)
+  train_val_split: 0.8  # Fraction of patients used for training
+  split_seed: 42  # Deterministic split seed (set to null for randomness)
+  val_metrics: ["auprc", "auroc"]  # Validation metrics to track during training

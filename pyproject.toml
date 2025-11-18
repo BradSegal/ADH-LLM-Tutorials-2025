@@ -1,0 +1,88 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "digital-health-tutorial"
+version = "0.1.0"
+description = "Tutorial on sequence models and LLMs in Digital Health."
+authors = [{ name = "Your Name", email = "your.email@example.com" }]
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+readme = "README.md"
+dependencies = [
+    "torch",
+    "pandas",
+    "pyyaml",
+    "scikit-learn",
+    "pydantic",
+    "boto3",
+    "matplotlib",
+    "seaborn",
+    "jupyterlab",
+    "requests",
+    "pyarrow", # For parquet support
+    "tqdm",
+    # Part 2 Dependencies
+    "openai",
+    "sentence-transformers",
+    "umap-learn",
+    "faiss-cpu", # Use faiss-gpu if a GPU environment is guaranteed
+    "captum",
+    "optuna",
+    "plotly",
+    "transformers",
+    "fastapi",
+    "uvicorn"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["core*"]
+exclude = ["tests*", "notebooks*", "configs*", "tickets*", "docs*"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "black",
+    "mypy",
+    "psutil",
+]
+
+[tool.black]
+line-length = 88
+include = '\.pyi?|\.ipynb$'
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B", "C4"]
+ignore = []
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true # Temporarily true, can be tightened later
+strict = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[[tool.mypy.overrides]]
+module = "tests.llm.*"
+disable_error_code = ["call-overload", "arg-type"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --cov=core --cov-report=term-missing"
+testpaths = ["tests"]
+markers = [
+    "api: tests that interact with local servers or external services"
+]

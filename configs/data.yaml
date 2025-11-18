@@ -1,0 +1,24 @@
+# Configuration for PhysioNet 2019 Sepsis Challenge Data Pipeline
+# This file defines all paths for raw data storage, processed artifacts,
+# and cached DataFrames to decouple code from filesystem layout.
+
+physionet_2019:
+  # Directory to store the raw, downloaded .psv files
+  raw_dir: "data/raw/physionet_2019"
+
+  # Directory to store processed artifacts
+  processed_dir: "data/processed"
+
+  # Path to the final, cached preprocessed DataFrame
+  processed_file: "data/processed/sepsis_preprocessed.parquet"
+
+  # Path to the saved feature scaler
+  scaler_file: "data/processed/feature_scaler.json"
+
+  # PhysioNet download URL for the dataset
+  # Note: This requires authentication with PhysioNet credentials
+  download_url: "https://physionet.org/static/published-projects/challenge-2019/1.0.0/training"
+
+  # Public S3 mirror used for anonymous downloads
+  s3_bucket: "physionet-open"
+  s3_prefix: "challenge-2019/1.0.0/training"
