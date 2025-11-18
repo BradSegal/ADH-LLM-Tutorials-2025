@@ -19,7 +19,6 @@ dependencies = [
     "boto3",
     "matplotlib",
     "seaborn",
-    "jupyterlab",
     "requests",
     "pyarrow", # For parquet support
     "tqdm",
@@ -43,6 +42,7 @@ exclude = ["tests*", "notebooks*", "configs*", "tickets*", "docs*"]
 
 [project.optional-dependencies]
 dev = [
+    "jupyterlab",
     "pytest",
     "pytest-cov",
     "ruff",
