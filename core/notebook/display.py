@@ -157,20 +157,17 @@ def display_hyperparameter_table(
     print(f"{'=' * 90}\n")
 
     # Display with nice formatting
-    print(
-        df.to_string(
-            index=False, max_colwidth=50, col_space=None, justify="left", header=True
-        )
+    table_str = df.to_string(
+        index=False, max_colwidth=50, col_space=None, justify="left", header=True
     )
+    print(table_str)
 
     print(f"\n{'=' * 90}")
     print("\nModification Guide:")
     print("  ✅ Safe to experiment - good learning opportunity")
     print("  ⚠️  Moderate impact - understand implications first")
     print("  ❌ Do not modify - determined by data/architecture constraints")
-    print(
-        f"{'=' * 90}\n"
-    )
+    print(f"{'=' * 90}\n")
 
 
 def plot_training_dashboard(
@@ -218,9 +215,7 @@ def plot_training_dashboard(
     ax2 = fig.add_subplot(gs[0, 1])
     if "val_metrics" in history and history["val_metrics"]:
         for metric_name, values in history["val_metrics"].items():
-            ax2.plot(
-                epochs, values, marker="o", label=metric_name.upper(), linewidth=2
-            )
+            ax2.plot(epochs, values, marker="o", label=metric_name.upper(), linewidth=2)
         ax2.set_xlabel("Epoch", fontsize=11)
         ax2.set_ylabel("Score", fontsize=11)
         ax2.set_title("Validation Metrics Over Time", fontsize=13, fontweight="bold")
@@ -229,9 +224,7 @@ def plot_training_dashboard(
         ax2.set_ylim([0, 1])
 
         # Mark best epoch for metrics too
-        ax2.axvline(
-            best_epoch, color="green", linestyle="--", alpha=0.5, linewidth=2
-        )
+        ax2.axvline(best_epoch, color="green", linestyle="--", alpha=0.5, linewidth=2)
     else:
         # No metrics available, show message
         ax2.text(
@@ -306,9 +299,7 @@ def plot_training_dashboard(
         for metric, values in history["val_metrics"].items():
             best_metric = max(values)
             best_metric_epoch = np.argmax(values) + 1
-            summary_text += (
-                f"  {metric.upper():<8} {best_metric:>6.4f}  (epoch {best_metric_epoch})\n"
-            )
+            summary_text += f"  {metric.upper():<8} {best_metric:>6.4f}  (epoch {best_metric_epoch})\n"
 
     if save_path:
         summary_text += f"\n{'=' * 45}\n"
@@ -361,9 +352,7 @@ def print_pre_training_summary(
     # Estimate training time
     estimated_time_per_epoch = len(train_loader) * 0.1  # Rough estimate: 0.1s per batch
     total_estimated_time = estimated_time_per_epoch * train_config.epochs
-    print(
-        f"\nEstimated Time per Epoch: ~{estimated_time_per_epoch:.0f} seconds"
-    )
+    print(f"\nEstimated Time per Epoch: ~{estimated_time_per_epoch:.0f} seconds")
     print(f"Total Estimated Time:     ~{total_estimated_time / 60:.1f} minutes")
     print("(Actual time depends on hardware; GPU is much faster)")
 
