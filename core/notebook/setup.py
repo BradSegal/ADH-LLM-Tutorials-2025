@@ -217,6 +217,7 @@ def smart_install_dependencies(
     repo_path: Path,
     include_dev: bool = False,
     verbose: bool = True,
+    install_editable: bool = False,
 ) -> dict[str, list[str]]:
     """Intelligently install only missing dependencies.
 
@@ -228,6 +229,7 @@ def smart_install_dependencies(
         repo_path: Path to repository root
         include_dev: Whether to install dev dependencies
         verbose: Whether to print progress messages
+        install_editable: Whether to install the package in editable mode (default: False)
 
     Returns:
         Dictionary with keys:
@@ -295,18 +297,20 @@ def smart_install_dependencies(
         successful, failed = install_packages(missing, quiet=not verbose)
         newly_installed.extend(successful)
 
-    # Handle editable install of local package
-    if verbose:
-        print("\n📦 Installing local 'core' package (editable mode)...")
+    # Handle editable install of local package (optional)
+    editable_success = True
+    if install_editable:
+        if verbose:
+            print("\n📦 Installing local 'core' package (editable mode)...")
 
-    editable_success = install_editable_package(
-        repo_path,
-        include_dev=include_dev,
-        quiet=not verbose,
-    )
+        editable_success = install_editable_package(
+            repo_path,
+            include_dev=include_dev,
+            quiet=not verbose,
+        )
 
-    if not editable_success:
-        failed.append("digital-health-tutorial (editable)")
+        if not editable_success:
+            failed.append("digital-health-tutorial (editable)")
 
     # Report results
     if verbose:
