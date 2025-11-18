@@ -1,13 +1,11 @@
 """Unit tests for core.notebook.setup module."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
 from core.notebook.setup import (
     extract_package_name,
-    fix_numpy_binary_compatibility,
     is_package_installed,
     parse_dependencies,
 )
@@ -42,6 +40,22 @@ class TestIsPackageInstalled:
         """Test that pyyaml is properly normalized to yaml."""
         # pyyaml is installed as 'pyyaml' but imported as 'yaml'
         assert is_package_installed("pyyaml") is True
+
+    def test_package_name_normalization_sentence_transformers(self) -> None:
+        """Test that sentence-transformers normalizes to sentence_transformers."""
+        # Distribution name: 'sentence-transformers'
+        # Import name: 'sentence_transformers'
+        assert is_package_installed("sentence-transformers") is True
+
+    def test_package_name_normalization_umap_learn(self) -> None:
+        """Test that umap-learn is properly normalized to umap."""
+        # Distribution name: 'umap-learn', Import name: 'umap'
+        assert is_package_installed("umap-learn") is True
+
+    def test_package_name_normalization_faiss_cpu(self) -> None:
+        """Test that faiss-cpu is properly normalized to faiss."""
+        # Distribution name: 'faiss-cpu', Import name: 'faiss'
+        assert is_package_installed("faiss-cpu") is True
 
     def test_malformed_package_name_returns_false(self) -> None:
         """Malformed package names should return False, not raise."""
@@ -206,62 +220,3 @@ class TestParseDependenciesWithRealFile:
         assert "black" in dep_names
         assert "ruff" in dep_names
         assert "mypy" in dep_names
-
-
-class TestFixNumpyBinaryCompatibility:
-    """Tests for fix_numpy_binary_compatibility function."""
-
-    @patch("subprocess.run")
-    def test_successful_numpy_upgrade(self, mock_run: MagicMock) -> None:
-        """Should successfully upgrade numpy and return True."""
-        # Mock successful subprocess call
-        mock_run.return_value = MagicMock(returncode=0)
-
-        result = fix_numpy_binary_compatibility(verbose=False)
-
-        assert result is True
-        mock_run.assert_called_once()
-        # Verify the command includes the necessary flags
-        call_args = mock_run.call_args[0][0]
-        assert "pip" in call_args
-        assert "install" in call_args
-        assert "--upgrade" in call_args
-        assert "--force-reinstall" in call_args
-        assert "--no-cache-dir" in call_args
-        assert "numpy" in call_args
-
-    @patch("subprocess.run")
-    def test_failed_numpy_upgrade(self, mock_run: MagicMock) -> None:
-        """Should return False when numpy upgrade fails."""
-        # Mock failed subprocess call
-        mock_run.return_value = MagicMock(returncode=1, stderr="Some error")
-
-        result = fix_numpy_binary_compatibility(verbose=False)
-
-        assert result is False
-        mock_run.assert_called_once()
-
-    @patch("subprocess.run")
-    def test_verbose_output_on_success(
-        self, mock_run: MagicMock, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        """Should print verbose messages when verbose=True and successful."""
-        mock_run.return_value = MagicMock(returncode=0)
-
-        fix_numpy_binary_compatibility(verbose=True)
-
-        captured = capsys.readouterr()
-        assert "🔧 Ensuring numpy binary compatibility" in captured.out
-        assert "✅ Numpy binary compatibility ensured" in captured.out
-
-    @patch("subprocess.run")
-    def test_verbose_output_on_failure(
-        self, mock_run: MagicMock, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        """Should print warning messages when verbose=True and failed."""
-        mock_run.return_value = MagicMock(returncode=1, stderr="Network error")
-
-        fix_numpy_binary_compatibility(verbose=True)
-
-        captured = capsys.readouterr()
-        assert "⚠️  Warning: Could not upgrade numpy" in captured.out

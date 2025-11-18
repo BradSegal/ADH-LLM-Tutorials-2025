@@ -18,7 +18,16 @@ import tomllib
 PACKAGE_IMPORT_MAP = {
     "scikit-learn": "sklearn",
     "pyyaml": "yaml",
+    "sentence-transformers": "sentence_transformers",
+    "umap-learn": "umap",
+    "faiss-cpu": "faiss",
 }
+
+# Packages that should be installed without dependencies to avoid version conflicts
+# captum: Has numpy<2.0 constraint that can cause downgrades in environments
+#         with numpy 2.x. All its dependencies (torch, matplotlib, numpy, tqdm)
+#         are already in our dependency list, so --no-deps is safe.
+NO_DEPS_PACKAGES = {"captum"}
 
 
 def is_package_installed(package_name: str) -> bool:
@@ -122,12 +131,14 @@ def extract_package_name(dep_spec: str) -> str:
 def install_packages(
     packages: list[str],
     quiet: bool = True,
+    no_deps: bool = False,
 ) -> tuple[list[str], list[str]]:
     """Install packages using pip.
 
     Args:
         packages: List of package names/specs to install
         quiet: Whether to suppress pip output
+        no_deps: If True, install with --no-deps to avoid dependency resolution
 
     Returns:
         Tuple of (successfully_installed, failed)
@@ -135,6 +146,8 @@ def install_packages(
     Examples:
         >>> install_packages(['pandas', 'numpy'], quiet=True)
         (['pandas', 'numpy'], [])
+        >>> install_packages(['captum'], quiet=True, no_deps=True)
+        (['captum'], [])
     """
     if not packages:
         return [], []
@@ -143,6 +156,9 @@ def install_packages(
 
     if quiet:
         cmd.append("-q")
+
+    if no_deps:
+        cmd.append("--no-deps")
 
     cmd.extend(packages)
 
@@ -211,50 +227,6 @@ def install_editable_package(
 
     result = subprocess.run(cmd, capture_output=True, text=True)
     return result.returncode == 0
-
-
-def fix_numpy_binary_compatibility(verbose: bool = True) -> bool:
-    """Fix numpy binary compatibility issues in Google Colab.
-
-    This addresses the common "numpy.dtype size changed" error that occurs
-    when packages compiled against different numpy versions are loaded together.
-    We force-upgrade numpy after all other packages are installed to ensure
-    binary compatibility.
-
-    Args:
-        verbose: Whether to print progress messages
-
-    Returns:
-        True if upgrade succeeded, False otherwise
-    """
-    if verbose:
-        print("\n🔧 Ensuring numpy binary compatibility...")
-
-    cmd = [
-        sys.executable,
-        "-m",
-        "pip",
-        "install",
-        "--upgrade",
-        "--force-reinstall",
-        "--no-cache-dir",
-        "numpy",
-    ]
-
-    if verbose:
-        print("   Running: pip install --upgrade --force-reinstall numpy")
-
-    result = subprocess.run(cmd, capture_output=True, text=True)
-
-    if result.returncode == 0:
-        if verbose:
-            print("✅ Numpy binary compatibility ensured")
-        return True
-    else:
-        if verbose:
-            print("⚠️  Warning: Could not upgrade numpy")
-            print(f"   Error: {result.stderr[:200]}")
-        return False
 
 
 def smart_install_dependencies(
@@ -333,14 +305,46 @@ def smart_install_dependencies(
     failed: list[str] = []
 
     if missing:
-        if verbose:
-            print(f"\n📦 Installing {len(missing)} missing packages...")
-            for pkg in missing:
-                print(f"  • {pkg}")
+        # Separate packages into normal and no-deps batches
+        normal_packages = []
+        no_deps_packages = []
 
-        # Batch install for speed (pip can parallelize)
-        successful, failed = install_packages(missing, quiet=not verbose)
-        newly_installed.extend(successful)
+        for dep_spec in missing:
+            pkg_name = extract_package_name(dep_spec)
+            if pkg_name in NO_DEPS_PACKAGES:
+                no_deps_packages.append(dep_spec)
+            else:
+                normal_packages.append(dep_spec)
+
+        # Install normal packages first
+        if normal_packages:
+            if verbose:
+                print(f"\n📦 Installing {len(normal_packages)} packages...")
+                for pkg in normal_packages:
+                    print(f"  • {pkg}")
+
+            successful, install_failed = install_packages(
+                normal_packages, quiet=not verbose
+            )
+            newly_installed.extend(successful)
+            failed.extend(install_failed)
+
+        # Install no-deps packages separately to avoid version conflicts
+        if no_deps_packages:
+            if verbose:
+                print(
+                    f"\n📦 Installing {len(no_deps_packages)} packages "
+                    "(without dependencies)..."
+                )
+                for pkg in no_deps_packages:
+                    pkg_name = extract_package_name(pkg)
+                    print(f"  • {pkg} (--no-deps to preserve environment versions)")
+
+            successful, install_failed = install_packages(
+                no_deps_packages, quiet=not verbose, no_deps=True
+            )
+            newly_installed.extend(successful)
+            failed.extend(install_failed)
 
     # Handle editable install of local package (optional)
     editable_success = True
@@ -356,16 +360,6 @@ def smart_install_dependencies(
 
         if not editable_success:
             failed.append("digital-health-tutorial (editable)")
-
-    # Fix numpy binary compatibility issues (common in Google Colab)
-    # This prevents "numpy.dtype size changed" errors when importing packages
-    # that have C extensions compiled against different numpy versions
-    numpy_fix_success = fix_numpy_binary_compatibility(verbose=verbose)
-    if not numpy_fix_success and verbose:
-        print(
-            "\n⚠️  Warning: Could not fix numpy compatibility. "
-            "You may encounter import errors."
-        )
 
     # Report results
     if verbose:
